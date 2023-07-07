@@ -2,17 +2,16 @@
 Created by Alexander Yazdani for Cisco Systems, ODVT, Summer 2023.
 GPIB Format:        GPIB__::__::INSTR
 TCP/IP Format:      TCPIP0::___.___.___.___::5025::SOCKET
+pyinstaller --onefile --noconsole \...filepath...\OSA_GUI.py
 """
 
 import pyvisa
 import time
-import math
 import sys
 import matplotlib.pyplot as plt
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-import os
 
 
 def main():
@@ -25,12 +24,17 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setWindowTitle("Optical Spectrum Analyzer")
+        self.resize(970, 470)
         self.gpib_label = QLabel("Address:")
         self.gpib_field = QLineEdit()
         self.connect_button = QPushButton("Connect")
         self.disconnect_button = QPushButton("Disconnect")
 
         self.osa_instrument = None
+
+        self.analysis_labels = None
+        self.analysis_data = None
+
         self.figure = plt.figure()
         self.canvas = FigureCanvas(self.figure)
 
@@ -42,18 +46,6 @@ class MainWindow(QMainWindow):
         self.layout.addWidget(self.connect_button, 0, 2)
         self.layout.addWidget(self.disconnect_button, 0, 3)
 
-        self.layout.addWidget(self.canvas, 1, 0, 1, 3)
-
-        # self.button_layout1 = QVBoxLayout()
-        # layout.addLayout(self.button_layout1, 1, 3)
-        # frame1 = QFrame()
-        # frame1.setFrameShape(QFrame.Box)
-        # frame1.setLineWidth(10)
-        # frame1.setLayout(self.button_layout1)
-
-        # self.button_layout2 = QVBoxLayout()
-        # layout.addLayout(self.button_layout2, 1, 4)
-        
         main_widget = QWidget()
         main_widget.setLayout(self.layout)
         self.setCentralWidget(main_widget)
@@ -68,7 +60,6 @@ class MainWindow(QMainWindow):
             self.frame1.setFrameShape(QFrame.Box)
             self.frame1.setLineWidth(2)
             self.button_layout1 = QVBoxLayout(self.frame1)
-            # self.button_layout1.setAlignment(Qt.AlignTop) 
             self.layout.addWidget(self.frame1, 1, 3)
 
             self.frame2 = QFrame()
@@ -77,6 +68,9 @@ class MainWindow(QMainWindow):
             self.button_layout2 = QGridLayout(self.frame2)
             self.button_layout2.setAlignment(Qt.AlignTop) 
             self.layout.addWidget(self.frame2, 1, 4)
+
+            self.canvas = FigureCanvas(self.figure)
+            self.layout.addWidget(self.canvas, 1, 0, 1, 3)
 
             self.refresh_button = QPushButton("Refresh Screen")
             self.refresh_button.clicked.connect(self.fetch_screen)
@@ -103,61 +97,31 @@ class MainWindow(QMainWindow):
             self.center_wl_entry = QLineEdit()
             self.center_wl_button = QPushButton("Set")
             self.center_wl_button.clicked.connect(self.set_center)
-            # self.center_wl_layout = QHBoxLayout()
-            # self.center_wl_layout.addWidget(self.center_wl_label)
-            # self.center_wl_layout.addWidget(self.center_wl_entry)
-            # self.center_wl_layout.addWidget(self.center_wl_button)
-            # self.button_layout2.addLayout(self.center_wl_layout)
 
             self.start_wl_label = QLabel("Start WL (nm):")
             self.start_wl_entry = QLineEdit()
             self.start_wl_button = QPushButton("Set")
             self.start_wl_button.clicked.connect(self.set_start)
-            # self.start_wl_layout = QHBoxLayout()
-            # self.start_wl_layout.addWidget(self.start_wl_label)
-            # self.start_wl_layout.addWidget(self.start_wl_entry)
-            # self.start_wl_layout.addWidget(self.start_wl_button)
-            # self.button_layout2.addLayout(self.start_wl_layout)
 
             self.stop_wl_label = QLabel("Stop WL (nm):")
             self.stop_wl_entry = QLineEdit()
             self.stop_wl_button = QPushButton("Set")
             self.stop_wl_button.clicked.connect(self.set_stop)
-            # self.stop_wl_layout = QHBoxLayout()
-            # self.stop_wl_layout.addWidget(self.stop_wl_label)
-            # self.stop_wl_layout.addWidget(self.stop_wl_entry)
-            # self.stop_wl_layout.addWidget(self.stop_wl_button)
-            # self.button_layout2.addLayout(self.stop_wl_layout)
 
             self.span_label = QLabel("Span (nm):")
             self.span_entry = QLineEdit()
             self.span_button = QPushButton("Set")
             self.span_button.clicked.connect(self.set_span)
-            # self.span_layout = QHBoxLayout()
-            # self.span_layout.addWidget(self.span_label)
-            # self.span_layout.addWidget(self.span_entry)
-            # self.span_layout.addWidget(self.span_button)
-            # self.button_layout2.addLayout(self.span_layout)
 
             self.resolution_label = QLabel("Resolution (nm):")
             self.resolution_entry = QLineEdit()
             self.resolution_button = QPushButton("Set")
             self.resolution_button.clicked.connect(self.set_resolution)
-            # self.resolution_layout = QHBoxLayout()
-            # self.resolution_layout.addWidget(self.resolution_label)
-            # self.resolution_layout.addWidget(self.resolution_entry)
-            # self.resolution_layout.addWidget(self.resolution_button)
-            # self.button_layout2.addLayout(self.resolution_layout)
 
             self.noisebw_label = QLabel("Noise BW (nm):")
             self.noisebw_entry = QLineEdit()
             self.noisebw_button = QPushButton("Set")
             self.noisebw_button.clicked.connect(self.set_noisebw)
-            # self.noisebw_layout = QHBoxLayout()
-            # self.noisebw_layout.addWidget(self.noisebw_label)
-            # self.noisebw_layout.addWidget(self.noisebw_entry)
-            # self.noisebw_layout.addWidget(self.noisebw_button)
-            # self.button_layout2.addLayout(self.noisebw_layout)
 
             self.labels = QVBoxLayout()
             self.labels.addWidget(self.center_wl_label)
@@ -187,53 +151,185 @@ class MainWindow(QMainWindow):
             self.button_layout2.addLayout(self.entries, 0, 1)
             self.button_layout2.addLayout(self.setbuttons, 0, 2)
 
-
+            self.analysis_label = QLabel("Analysis:")
+            self.wdm_button = QPushButton("WDM")
+            self.wdm_button.clicked.connect(self.dwdm_analysis)
+            self.smsr_button = QPushButton("SMSR")
+            self.smsr_button.clicked.connect(self.smsr_analysis)
+            self.button_layout2.addWidget(QLabel(" "), 1, 0)
+            self.button_layout2.addWidget(self.analysis_label, 2, 0)
+            self.button_layout2.addWidget(self.wdm_button, 2, 1)
+            self.button_layout2.addWidget(self.smsr_button, 2, 2)
 
 
     def set_center(self):
-        self.osa_instrument.set_center(self.center_wl_entry.text())
-        self.single_sweep()
+        try:
+            self.osa_instrument.set_center(self.center_wl_entry.text())
+            self.single_sweep()
+        except:
+            error_message = "Error communicating with instrument."
+            QMessageBox.critical(self, "Error", error_message)
 
     def set_start(self):
-        self.osa_instrument.set_start(self.start_wl_entry.text())
-        self.single_sweep()
+        try:
+            self.osa_instrument.set_start(self.start_wl_entry.text())
+            self.single_sweep()
+        except:
+            error_message = "Error communicating with instrument."
+            QMessageBox.critical(self, "Error", error_message)
 
     def set_stop(self):
-        self.osa_instrument.set_stop(self.stop_wl_entry.text())
-        self.single_sweep()
+        try:
+            self.osa_instrument.set_stop(self.stop_wl_entry.text())
+            self.single_sweep()
+        except:
+            error_message = "Error communicating with instrument."
+            QMessageBox.critical(self, "Error", error_message)
 
     def set_span(self):
-        self.osa_instrument.set_span(self.span_entry.text())
-        self.single_sweep()
+        try:
+            self.osa_instrument.set_span(self.span_entry.text())
+            self.single_sweep()
+        except:
+            error_message = "Error communicating with instrument."
+            QMessageBox.critical(self, "Error", error_message)
 
     def set_resolution(self):
-        self.osa_instrument.set_resolution(self.resolution_entry.text())
-        self.single_sweep()
+        try:
+            self.osa_instrument.set_resolution(self.resolution_entry.text())
+            self.single_sweep()
+        except:
+            error_message = "Error communicating with instrument."
+            QMessageBox.critical(self, "Error", error_message)
 
     def set_noisebw(self):
-        self.osa_instrument.set_noise_bw(self.noisebw_entry.text())
-        self.single_sweep()
+        try:
+            self.osa_instrument.set_noise_bw(self.noisebw_entry.text())
+            self.single_sweep()
+        except:
+            error_message = "Error communicating with instrument."
+            QMessageBox.critical(self, "Error", error_message)
 
     def auto_sweep(self):
-        self.osa_instrument.auto_sweep()
-        time.sleep(6)
-        self.fetch_screen()
-    
+        try:
+            self.osa_instrument.auto_sweep()
+            time.sleep(6)
+            self.fetch_screen()
+        except:
+            error_message = "Error communicating with instrument."
+            QMessageBox.critical(self, "Error", error_message)
+
     def repeat_sweep(self):
-        self.osa_instrument.repeat_sweep()
-    
+        try:
+            self.osa_instrument.repeat_sweep()
+        except:
+            error_message = "Error communicating with instrument."
+            QMessageBox.critical(self, "Error", error_message)
+
     def single_sweep(self):
-        self.osa_instrument.single_sweep()
-        time.sleep(3)
-        self.fetch_screen()
+        try:
+            self.osa_instrument.single_sweep()
+            time.sleep(3)
+            self.fetch_screen()
+        except:
+            error_message = "Error communicating with instrument."
+            QMessageBox.critical(self, "Error", error_message)
 
     def stop_sweep(self):
-        self.osa_instrument.stop_sweep()
-        self.fetch_screen()
+        try:
+            self.osa_instrument.stop_sweep()
+            self.fetch_screen()
+        except:
+            error_message = "Error communicating with instrument."
+            QMessageBox.critical(self, "Error", error_message)
+
+    def dwdm_analysis(self):
+        self.osa_instrument.set_wdm_mode()
+        self.osa_instrument.clear()
+        try:
+            wdm_data = self.osa_instrument.get_osnr_values()
+        except:
+            wdm_data = ['--', '--', '--', '--']
+
+        try:
+            self.button_layout2.removeItem(self.analysis_labels)
+            while self.analysis_labels.count():
+                item = self.analysis_labels.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+        except:
+            pass
+
+        try:
+            self.button_layout2.removeItem(self.analysis_data)
+            while self.analysis_data.count():
+                item = self.analysis_data.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+        except:
+            pass
+
+        self.analysis_labels = QVBoxLayout()
+        self.analysis_labels.addWidget(QLabel("Peak WL (nm):"))
+        self.analysis_labels.addWidget(QLabel("Peak Level (dBm):"))
+        self.analysis_labels.addWidget(QLabel("SNR (dB):"))
+        self.button_layout2.addLayout(self.analysis_labels, 3, 0)
+
+        self.analysis_data = QVBoxLayout()
+        self.analysis_data.addWidget(QLabel(wdm_data[1]))
+        self.analysis_data.addWidget(QLabel(wdm_data[2]))
+        self.analysis_data.addWidget(QLabel(wdm_data[3]))
+        self.button_layout2.addLayout(self.analysis_data, 3, 1)
+
+
+    def smsr_analysis(self):
+        self.osa_instrument.set_smsr_mode()
+        self.osa_instrument.clear()
+        try:
+            smsr_data = self.osa_instrument.get_smsr_values()
+        except:
+            smsr_data = ['--', '--', '--', '--', '--', '--']
+
+        try:
+            self.button_layout2.removeItem(self.analysis_labels)
+            while self.analysis_labels.count():
+                item = self.analysis_labels.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+        except:
+            pass
+
+        try:
+            self.button_layout2.removeItem(self.analysis_data)
+            while self.analysis_data.count():
+                item = self.analysis_data.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+        except:
+            pass
+
+        self.analysis_labels = QVBoxLayout()
+        self.analysis_labels.addWidget(QLabel("Peak WL (nm):"))
+        self.analysis_labels.addWidget(QLabel("Peak Level (dBm):"))
+        self.analysis_labels.addWidget(QLabel("Side Mode WL (nm):"))
+        self.analysis_labels.addWidget(QLabel("Side Mode Level (dBm):"))
+        self.analysis_labels.addWidget(QLabel("WL Difference (dB):"))
+        self.analysis_labels.addWidget(QLabel("Level Difference (dB):"))
+        self.button_layout2.addLayout(self.analysis_labels, 3, 0)
+
+        self.analysis_data = QVBoxLayout()
+        self.analysis_data.addWidget(QLabel(smsr_data[0]))
+        self.analysis_data.addWidget(QLabel(smsr_data[1]))
+        self.analysis_data.addWidget(QLabel(smsr_data[2]))
+        self.analysis_data.addWidget(QLabel(smsr_data[3]))
+        self.analysis_data.addWidget(QLabel(smsr_data[4]))
+        self.analysis_data.addWidget(QLabel(smsr_data[5]))
+        self.button_layout2.addLayout(self.analysis_data, 3, 1)
+
+
+
 
     def remove_buttons(self):
-
-        # self.button_layout1 = self.centralWidget().layout().itemAtPosition(1, 3).layout()
 
         self.button_layout1.removeWidget(self.refresh_button)
         self.button_layout1.removeWidget(self.autoscale_button)
@@ -241,11 +337,15 @@ class MainWindow(QMainWindow):
         self.button_layout1.removeWidget(self.single_button)
         self.button_layout1.removeWidget(self.stop_button)
 
+        self.layout.removeWidget(self.canvas)
+
         self.refresh_button.deleteLater()
         self.autoscale_button.deleteLater()
         self.repeat_button.deleteLater()
         self.single_button.deleteLater()
         self.stop_button.deleteLater()
+
+        self.canvas.deleteLater()
 
 
         self.layout.removeWidget(self.frame1)
@@ -254,15 +354,21 @@ class MainWindow(QMainWindow):
         self.frame2.deleteLater()
 
         self.refresh_button = None
+        self.canvas = FigureCanvas(self.figure)
+
 
 
     def connect_instrument(self):
-        self.disconnect_instrument()
-        gpib_address = self.gpib_field.text()
-        self.osa_instrument = OSA(gpib_address)
-        self.osa_instrument.command_mode()
-        self.fetch_screen()
-        self.setup_buttons()
+        try:
+            self.disconnect_instrument()
+            gpib_address = self.gpib_field.text()
+            self.osa_instrument = OSA(gpib_address)
+            self.osa_instrument.command_mode()
+            self.setup_buttons()
+            self.fetch_screen()
+        except:
+            error_message = "Could not connect to instrument."
+            QMessageBox.critical(self, "Error", error_message)
 
     def disconnect_instrument(self):
         if self.osa_instrument:
@@ -273,32 +379,36 @@ class MainWindow(QMainWindow):
             self.remove_buttons()
 
     def fetch_screen(self):
-        if self.osa_instrument:
-            self.figure.clear()
-            amplitude = self.osa_instrument.instrument.query("LDATA").replace(" ", "").split(",")[1:]
-            wavelength = self.osa_instrument.instrument.query("WDATA").replace(" ", "").split(",")[1:]
-            amplitude = [float(val) for val in amplitude]
-            wavelength = [float(val) for val in wavelength]
+        try:
+            if self.osa_instrument:
+                self.figure.clear()
+                amplitude = self.osa_instrument.instrument.query("LDATA").replace(" ", "").split(",")[1:]
+                wavelength = self.osa_instrument.instrument.query("WDATA").replace(" ", "").split(",")[1:]
+                amplitude = [float(val) for val in amplitude]
+                wavelength = [float(val) for val in wavelength]
 
-            plt.plot(wavelength, amplitude)
-            plt.xlabel('Wavelength (nm)')
-            plt.ylabel('Amplitude (dBm)')
-            plt.title('Amplitude vs. Wavelength')
+                plt.plot(wavelength, amplitude)
+                plt.xlabel('Wavelength (nm)')
+                plt.ylabel('Amplitude (dBm)')
+                plt.title('Amplitude vs. Wavelength')
 
-            num_ticks = 5
-            step = len(wavelength) // (num_ticks - 1)
-            x_ticks = wavelength[::step]
-            x_tick_labels = [f'{value:.1f}' for value in x_ticks]
-            plt.xticks(x_ticks, x_tick_labels)
-            plt.gca().xaxis.set_major_formatter('{:.3f}'.format)
+                num_ticks = 5
+                step = len(wavelength) // (num_ticks - 1)
+                x_ticks = wavelength[::step]
+                x_tick_labels = [f'{value:.1f}' for value in x_ticks]
+                plt.xticks(x_ticks, x_tick_labels)
+                plt.gca().xaxis.set_major_formatter('{:.3f}'.format)
 
-            if min(amplitude) < -100:
-                plt.ylim(-100, (max(amplitude) + 10))
-            else:
-                plt.ylim((min(amplitude) - 10), (max(amplitude) + 10))
+                if min(amplitude) < -100:
+                    plt.ylim(-100, (max(amplitude) + 10))
+                else:
+                    plt.ylim((min(amplitude) - 10), (max(amplitude) + 10))
 
-            plt.grid(True)
-            self.canvas.draw()
+                plt.grid(True)
+                self.canvas.draw()
+        except:
+            error_message = "Error fetching screen from OSA."
+            QMessageBox.critical(self, "Error", error_message)
 
 
 class Instrument:
@@ -373,36 +483,6 @@ class OSA(Instrument):
         if str(response1).rstrip() != "0":
             self.instrument.write(command2)
 
-    # Read setup file stored internal
-    def read_set(self, filename):
-        # Change to AQ6370 Mode for loading internal setting files
-        command1 = "CFORM1"
-        self.instrument.write(command1)
-
-        # file name format: Sxxxx.ST6
-        command2 = f"MMEMORY:LOAD:SETTING \"{filename}\",INTERNAL"
-        self.instrument.write(command2)
-
-    # Save setup file internal
-    def save_set(self, filename):
-        # Change to AQ6370 Mode for saving internal setting files
-        command1 = "CFORM1"
-        self.instrument.write(command1)
-
-        # file name format: Sxxxx, no need to add .ST6
-        command2 = f":MMEMORY:STORE:SETTING \"{filename}\",INTERNAL"
-        self.instrument.write(command2)
-
-    # Delete setup file internal
-    def delete_set(self, filename):
-        # Change to AQ6370 Mode for deleting internal setting files
-        command1 = "CFORM1"
-        self.instrument.write(command1)
-
-        # file name format: Sxxxx.ST6
-        command2 = f":MMEMORY:DELETE \"{filename}\",INTERNAL"
-        self.instrument.write(command2)
-
     def auto_sweep(self):
         command = "AUTO"
         self.instrument.write(command)
@@ -443,36 +523,6 @@ class OSA(Instrument):
         command = f"WDMNOIBW{nbw}"
         self.instrument.write(command)
 
-    def get_center(self):
-        command = "CTRWL?"
-        response = self.instrument.query(command)
-        return response
-
-    def get_start(self):
-        command = "STAWL?"
-        response = self.instrument.query(command)
-        return response
-
-    def get_stop(self):
-        command = "STPWL?"
-        response = self.instrument.query(command)
-        return response
-
-    def get_span(self):
-        command = "SPAN?"
-        response = self.instrument.query(command)
-        return response
-
-    def get_resolution(self):
-        command = "RESLN?"
-        response = self.instrument.query(command)
-        return response
-
-    def get_noise_bw(self):
-        command = "WDMNOIBW?"
-        response = self.instrument.query(command)
-        return response
-
     def set_smsr_mode(self):
         command = f"SMSR1"
         self.instrument.write(command)
@@ -488,55 +538,36 @@ class OSA(Instrument):
             " ", "").replace("\r", "").replace("\n", "").split(",")
         return response
 
-    def get_osnr(self):
-        response = self.get_osnr_values()[3]
-        return response
-
     def get_smsr_values(self):
-        """
-        Method returns a list, mapping shown below, can be easily modified to output dict.
-        peak_wavelength = response[0]
-        peak_level = response[1]
-        side_mode_wa velength = response[2]
-        side_mode_level = response[3]
-        wavelength_difference = response[4]
-        level_difference = response[5]
-        """
         self.set_smsr_mode()
         command = "ANA?"
-        response = self.instrument.query(command).replace(" ", "").split(",")
-        response = [float(val) for val in response]
-        response_dict = {"peak_wavelength": response[0],
-                         "peak_level": response[1],
-                         "side_mode_wavelength": response[2],
-                         "side_mode_level": response[3],
-                         "wavelength_difference": response[4],
-                         "level_difference": response[5]}
+        response = self.instrument.query(command).replace(" ", "").replace("\n", "").split(",")
+        response = [str(val) for val in response]
         return response
 
-    def fetch_screen(self):
-        amplitude = self.instrument.query(
-            "LDATA").replace(" ", "").split(",")[1:]
-        wavelength = self.instrument.query(
-            "WDATA").replace(" ", "").split(",")[1:]
-        amplitude = [float(val) for val in amplitude]
-        wavelength = [float(val) for val in wavelength]
-        plt.plot(wavelength, amplitude)
-        plt.xlabel('Wavelength (nm)')
-        plt.ylabel('Amplitude (dBm)')
-        plt.title('Amplitude vs. Wavelength')
-        num_ticks = 5
-        step = len(wavelength) // (num_ticks - 1)
-        x_ticks = wavelength[::step]
-        x_tick_labels = [f'{value:.1f}' for value in x_ticks]
-        plt.xticks(x_ticks, x_tick_labels)
-        plt.gca().xaxis.set_major_formatter('{:.3f}'.format)
-        if min(amplitude) < -100:
-            plt.ylim(-100, (max(amplitude) + 10))
-        else:
-            plt.ylim((min(amplitude) - 10), (max(amplitude) + 10))
-        plt.grid(True)
-        plt.show()
+    # def fetch_screen(self):
+    #     amplitude = self.instrument.query(
+    #         "LDATA").replace(" ", "").split(",")[1:]
+    #     wavelength = self.instrument.query(
+    #         "WDATA").replace(" ", "").split(",")[1:]
+    #     amplitude = [float(val) for val in amplitude]
+    #     wavelength = [float(val) for val in wavelength]
+    #     plt.plot(wavelength, amplitude)
+    #     plt.xlabel('Wavelength (nm)')
+    #     plt.ylabel('Amplitude (dBm)')
+    #     plt.title('Amplitude vs. Wavelength')
+    #     num_ticks = 5
+    #     step = len(wavelength) // (num_ticks - 1)
+    #     x_ticks = wavelength[::step]
+    #     x_tick_labels = [f'{value:.1f}' for value in x_ticks]
+    #     plt.xticks(x_ticks, x_tick_labels)
+    #     plt.gca().xaxis.set_major_formatter('{:.3f}'.format)
+    #     if min(amplitude) < -100:
+    #         plt.ylim(-100, (max(amplitude) + 10))
+    #     else:
+    #         plt.ylim((min(amplitude) - 10), (max(amplitude) + 10))
+    #     plt.grid(True)
+    #     plt.show()
 
 if __name__ == "__main__":
     main()
