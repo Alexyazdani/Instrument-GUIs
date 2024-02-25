@@ -1,5 +1,5 @@
 r"""
-Created by Alexander Yazdani for Cisco Systems ODVT April 2023
+Created by Alexander Yazdani, April 2023
 To install pyvisa library, run 'pip install pyvisa' in command prompt or terminal
 This source file acts as a class definition of an Instrument, and has specific methods for specific instruments.
 Alternatively, Child classes are defined for each instrument as well.
