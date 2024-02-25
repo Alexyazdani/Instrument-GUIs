@@ -1,5 +1,5 @@
 r"""
-Created by Alexander Yazdani for Cisco Systems ODVT April 2023
+Created by Alexander Yazdani, April 2023
 This script was created to act as a GUI application for HP/Agilent/Keysight
 multimeters and associated attenuators, power sensors, laser sources, etc.
 To make into an application, run:
