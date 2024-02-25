@@ -2,7 +2,7 @@ r"""
 Created by Alexander Yazdani, Summer 2023.
 GPIB Format:        GPIB__::__::INSTR
 TCP/IP Format:      TCPIP0::___.___.___.___::5025::SOCKET
-pyinstaller --onefile --noconsole "\\sjck-netapp-ns\local\Compliance-Telecom\PROJECTS\Alex\GUI_src\OSA\OSA_GUI.py"
+pyinstaller --onefile --noconsole "OSA_GUI.py"
 """
 
 import pyvisa
