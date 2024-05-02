@@ -1,4 +1,4 @@
-Alexander Yazdani
+Created by Alexander Yazdani
 
 GUI executables and source files for various laboratory instruments.
 
