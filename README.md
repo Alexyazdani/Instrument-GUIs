@@ -4,7 +4,7 @@ GUI executables and source files for various laboratory instruments.
 
 The file Instuments.py acts as a class definition of an Instrument, and has specific methods for specific instruments.  Alternatively, child classes are defined for each instrument as well.
 
-Current Support List:
+Current support list:
 
     - Attenuator:                   EXFO/HP/Agilent/Keysight
     - Power Meter:                  HP/Agilent/Keysight
